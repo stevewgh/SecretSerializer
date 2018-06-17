@@ -6,17 +6,25 @@ namespace SecretSerializer
 {
     public class SecretConverter : JsonConverter
     {
+        private readonly IEncryptionProvider provider;
+
+        public SecretConverter(IEncryptionProvider provider)
+        {
+            this.provider = provider ?? throw new ArgumentNullException(nameof(provider));
+        }
+
         public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
         {
             var bodyJsonBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(value));
-            var secret = new Secret {Body = bodyJsonBytes, Iv = new byte[16]};
+            var secret = provider.Encrypt(bodyJsonBytes);
             serializer.Serialize(writer, secret);            
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
         {
             var secret = serializer.Deserialize<Secret>(reader);
-            return JsonConvert.DeserializeObject(Encoding.UTF8.GetString(secret.Body), objectType);
+            var bodyJsonBytes = provider.Decrypt(secret);
+            return JsonConvert.DeserializeObject(Encoding.UTF8.GetString(bodyJsonBytes), objectType);
         }
 
         public override bool CanConvert(Type objectType)
@@ -24,10 +32,5 @@ namespace SecretSerializer
             return true;
         }
 
-        public class Secret
-        {
-            public byte[] Body { get; set; }
-            public byte[] Iv { get; set; }
-        }
     }
 }
