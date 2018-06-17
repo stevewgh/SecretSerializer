@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using System.Security.Cryptography;
 using FluentAssertions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -11,6 +12,13 @@ namespace SecretSerializer.Tests
     public class SecretContractResolverTests
     {
         private readonly IEncryptionProvider encryptionProvider = new StubEncryptionProvider();
+
+        public SecretContractResolverTests()
+        {
+            var key = new byte[16];
+            RandomNumberGenerator.Create().GetBytes(key);
+            encryptionProvider = new FixedKeyAesEncryptionProvider(key);
+        }
 
         [Fact]
         public void Given_A_Property_With_KeepSecret_Attribute_Then_The_Converter_Is_A_SecretConverter()
