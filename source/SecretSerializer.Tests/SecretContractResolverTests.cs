@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Threading.Tasks;
 using FluentAssertions;
+using Microsoft.Azure.KeyVault;
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 using SecretSerializer.Tests.TestClasses;
@@ -15,7 +18,7 @@ namespace SecretSerializer.Tests
 
         public SecretContractResolverTests()
         {
-            var key = new byte[16];
+            var key = new byte[32];
             RandomNumberGenerator.Create().GetBytes(key);
             encryptionProvider = new FixedKeyAesEncryptionProvider(key);
         }
@@ -55,7 +58,9 @@ namespace SecretSerializer.Tests
             var objectContainingSecret = Activator.CreateInstance(typeContainingSecret);
             var deserializeMethod = typeof(JsonConvert).GetMethods().First(m => m.GetParameters().Any(info => info.ParameterType == typeof(JsonSerializerSettings)) && m.Name == nameof(JsonConvert.DeserializeObject) & m.IsGenericMethod).MakeGenericMethod(typeContainingSecret);
 
-            deserializeMethod.Invoke(null, new object[]{JsonConvert.SerializeObject(objectContainingSecret, serializerSettings), serializerSettings})
+            var json = JsonConvert.SerializeObject(objectContainingSecret, serializerSettings);
+
+            deserializeMethod.Invoke(null, new object[]{json, serializerSettings})
                 .Should().BeEquivalentTo(objectContainingSecret);
         }
     }

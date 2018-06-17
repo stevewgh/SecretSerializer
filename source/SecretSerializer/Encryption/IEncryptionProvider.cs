@@ -1,4 +1,4 @@
-﻿namespace SecretSerializer
+﻿namespace SecretSerializer.Encryption
 {
     public interface IEncryptionProvider
     {

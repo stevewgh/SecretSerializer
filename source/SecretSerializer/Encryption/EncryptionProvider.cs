@@ -1,25 +1,14 @@
-﻿using System;
-using System.IO;
+﻿using System.IO;
 using System.Security.Cryptography;
 
-namespace SecretSerializer
+namespace SecretSerializer.Encryption
 {
-    public class FixedKeyAesEncryptionProvider : IEncryptionProvider
+    public abstract class EncryptionProvider : IEncryptionProvider
     {
-        private readonly byte[] key;
-
-        public FixedKeyAesEncryptionProvider(byte[] key)
-        {
-            if (key.Length != 16)
-            {
-                throw new ArgumentException("Key must be 16 bytes", nameof(key));
-            }
-
-            this.key = key;
-        }
-
         public Secret Encrypt(byte[] data)
         {
+            var key = GetKeyForNewSecret(out var keyIdentifier);
+
             using (var aes = Aes.Create())
             {
                 aes.Key = key;
@@ -33,13 +22,15 @@ namespace SecretSerializer
                         plainStream.CopyTo(aesStream);
                     }
 
-                    return new Secret{Data = resultStream.ToArray(), Iv = aes.IV, KeyIdentifier = "Fixed"};
+                    return new Secret { Data = resultStream.ToArray(), Iv = aes.IV, KeyIdentifier = keyIdentifier };
                 }
             }
         }
 
         public byte[] Decrypt(Secret secret)
         {
+            var key = GetKeyForExistingSecret(secret);
+
             using (var aes = Aes.Create())
             {
                 aes.Key = key;
@@ -59,5 +50,9 @@ namespace SecretSerializer
                 }
             }
         }
+
+        protected abstract byte[] GetKeyForNewSecret(out string keyIdentifier);
+
+        protected abstract byte[] GetKeyForExistingSecret(Secret secret);
     }
 }
