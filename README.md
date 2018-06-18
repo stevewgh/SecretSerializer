@@ -8,6 +8,12 @@ Add the KeepSecret attribute to the class or properties that should be kept secr
 ```c#
 public class Poco
 {
+  public Poco()
+  {
+      IContainASecret = Guid.NewGuid().ToString();
+      IWillBeSerializedInPlainText = Guid.NewGuid().ToString();
+  }
+  
   [KeepSecret]
   public string IContainASecret {get; set;}
   
@@ -36,6 +42,20 @@ var instance = new Poco();
 // any properties marked with [KeepSecret] will be encrypted before being serialized
 var json = JsonConvert.Serialize(instance, settings); 
 ```
+
+The Json will look something like this:
+
+```json
+{
+"IContainASecret":{
+  "KeyIdentifier":"fixed",
+  "Data":"x0F/1s2enXeBgKolEGnbTLG3nDZjZHbPO7N0g0WyA5iWW/hitohAbCs509jhrdqj",
+  "Iv":"nyWfg1ez0qF6GayP3APnuA=="
+},
+"IWillBeSerializedInPlainText":"8c094773-e471-4bdb-8674-b8b3d2fd5e3d"
+}
+```
+The property marked with [KeepSecret] has been encrypted, whereas the other property has been serialized as plain text.
 
 #### 4. When Deserializing pass the JsonSerializerSettings instance to the Deserialize method
 ```c#
