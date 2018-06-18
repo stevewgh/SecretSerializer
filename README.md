@@ -17,6 +17,11 @@ public class Poco
 
 #### 2. Create a custom JsonSerializerSettings instance
 ```c#
+
+// we are using a fixed key encryption provider here
+// there's also a KeyVaultEncryptionProvider which supports key rotation
+// you can provide your own by implementing the IEncryptionProvider interface and providing it 
+// to the SecretContractResolver CTOR
 var key = new byte[32];
 var encryptionProvider = new FixedKeyEncryptionProvider(key);
 
