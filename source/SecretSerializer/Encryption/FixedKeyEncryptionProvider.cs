@@ -2,11 +2,11 @@
 
 namespace SecretSerializer.Encryption
 {
-    public class FixedKeyAesEncryptionProvider : EncryptionProvider
+    public class FixedKeyEncryptionProvider : EncryptionProvider
     {
         private readonly byte[] key;
 
-        public FixedKeyAesEncryptionProvider(byte[] key)
+        public FixedKeyEncryptionProvider(byte[] key)
         {
             if (key.Length != 32)
             {

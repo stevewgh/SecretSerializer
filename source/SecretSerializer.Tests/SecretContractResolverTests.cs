@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Linq;
-using System.Security.Cryptography;
-using System.Threading.Tasks;
 using FluentAssertions;
-using Microsoft.Azure.KeyVault;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using SecretSerializer.Encryption;
 using SecretSerializer.Tests.TestClasses;
 using Xunit;
 
@@ -15,13 +12,6 @@ namespace SecretSerializer.Tests
     public class SecretContractResolverTests
     {
         private readonly IEncryptionProvider encryptionProvider = new StubEncryptionProvider();
-
-        public SecretContractResolverTests()
-        {
-            var key = new byte[32];
-            RandomNumberGenerator.Create().GetBytes(key);
-            encryptionProvider = new FixedKeyAesEncryptionProvider(key);
-        }
 
         [Fact]
         public void Given_A_Property_With_KeepSecret_Attribute_Then_The_Converter_Is_A_SecretConverter()

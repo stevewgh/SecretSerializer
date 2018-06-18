@@ -1,4 +1,6 @@
-﻿namespace SecretSerializer.Tests
+﻿using SecretSerializer.Encryption;
+
+namespace SecretSerializer.Tests
 {
     public class StubEncryptionProvider : IEncryptionProvider
     {
