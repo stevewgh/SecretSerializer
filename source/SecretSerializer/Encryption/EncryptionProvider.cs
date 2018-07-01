@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Security.Cryptography;
 
 namespace SecretSerializer.Encryption
@@ -9,21 +10,11 @@ namespace SecretSerializer.Encryption
         {
             var key = GetKeyForNewSecret(out var keyIdentifier);
 
-            using (var aes = Aes.Create())
+            using (var aes = CreateAesOrThrowIfNull())
             {
-                aes.Key = key;
+                aes.Key = key.Value;
 
-                using (var encryptor = aes.CreateEncryptor(aes.Key, aes.IV))
-                using (var resultStream = new MemoryStream())
-                {
-                    using (var aesStream = new CryptoStream(resultStream, encryptor, CryptoStreamMode.Write))
-                    using (var plainStream = new MemoryStream(data))
-                    {
-                        plainStream.CopyTo(aesStream);
-                    }
-
-                    return new Secret { Data = resultStream.ToArray(), Iv = aes.IV, KeyIdentifier = keyIdentifier };
-                }
+                return EncryptStream(data, aes, keyIdentifier);
             }
         }
 
@@ -31,28 +22,78 @@ namespace SecretSerializer.Encryption
         {
             var key = GetKeyForExistingSecret(secret);
 
-            using (var aes = Aes.Create())
+            AssertKeyIsValid(key, secret);
+
+            using (var aes = CreateAesOrThrowIfNull())
             {
-                aes.Key = key;
+                aes.Key = key.Value;
                 aes.IV = secret.Iv;
 
-                using (var decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
-                using (var sourceStream = new MemoryStream(secret.Data))
+                try
                 {
-                    using (var csDecrypt = new CryptoStream(sourceStream, decryptor, CryptoStreamMode.Read))
+                    return DecryptStream(secret, aes);
+                }
+                catch (CryptographicException)
+                {
+                    return new byte[0];
+                }
+            }
+        }
+
+        protected abstract bool VerifyKeyIdentity(Key key, Secret secret);
+
+        protected abstract Key GetKeyForNewSecret(out string keyIdentifier);
+
+        protected abstract Key GetKeyForExistingSecret(Secret secret);
+
+        private static Secret EncryptStream(byte[] data, SymmetricAlgorithm aes, string keyIdentifier)
+        {
+            using (var encryptor = aes.CreateEncryptor(aes.Key, aes.IV))
+            using (var resultStream = new MemoryStream())
+            {
+                using (var aesStream = new CryptoStream(resultStream, encryptor, CryptoStreamMode.Write))
+                using (var plainStream = new MemoryStream(data))
+                {
+                    plainStream.CopyTo(aesStream);
+                }
+
+                return new Secret {Data = resultStream.ToArray(), Iv = aes.IV, KeyIdentifier = keyIdentifier};
+            }
+        }
+
+        private static byte[] DecryptStream(Secret secret, SymmetricAlgorithm aes)
+        {
+            using (var decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
+            using (var sourceStream = new MemoryStream(secret.Data))
+            {
+                using (var csDecrypt = new CryptoStream(sourceStream, decryptor, CryptoStreamMode.Read))
+                {
+                    using (var destStream = new MemoryStream())
                     {
-                        using (var destStream = new MemoryStream())
-                        {
-                            csDecrypt.CopyTo(destStream);
-                            return destStream.ToArray();
-                        }
+                        csDecrypt.CopyTo(destStream);
+                        return destStream.ToArray();
                     }
                 }
             }
         }
 
-        protected abstract byte[] GetKeyForNewSecret(out string keyIdentifier);
+        private static Aes CreateAesOrThrowIfNull()
+        {
+            var aes = Aes.Create();
+            if (aes == null)
+            {
+                throw new Exception("Unable to create Aes instance.");
+            }
 
-        protected abstract byte[] GetKeyForExistingSecret(Secret secret);
+            return aes;
+        }
+
+        private void AssertKeyIsValid(Key key, Secret secret)
+        {
+            if (!VerifyKeyIdentity(key, secret))
+            {
+                throw new KeyIdentifierMismatchException(secret.KeyIdentifier);
+            }
+        }
     }
 }

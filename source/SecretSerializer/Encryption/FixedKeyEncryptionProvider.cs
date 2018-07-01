@@ -4,27 +4,32 @@ namespace SecretSerializer.Encryption
 {
     public class FixedKeyEncryptionProvider : EncryptionProvider
     {
-        private readonly byte[] key;
+        private readonly Key fixedKey;
 
-        public FixedKeyEncryptionProvider(byte[] key)
+        public FixedKeyEncryptionProvider(Key fixedKey)
         {
-            if (key.Length != 32)
-            {
-                throw new ArgumentException("Key must be 32 bytes", nameof(key));
-            }
-
-            this.key = key;
+            this.fixedKey = fixedKey;
         }
 
-        protected override byte[] GetKeyForExistingSecret(Secret secret)
+        protected override Key GetKeyForExistingSecret(Secret secret)
         {
-            return key;
+            return fixedKey;
         }
 
-        protected override byte[] GetKeyForNewSecret(out string keyIdentifier)
+        protected override bool VerifyKeyIdentity(Key key, Secret secret)
         {
-            keyIdentifier = "fixed";
-            return key;
+            return GetKeyIdentifier(key) == secret.KeyIdentifier;
+        }
+
+        protected override Key GetKeyForNewSecret(out string keyIdentifier)
+        {
+            keyIdentifier = GetKeyIdentifier(fixedKey);
+            return fixedKey;
+        }
+
+        private static string GetKeyIdentifier(Key key)
+        {
+            return $"fixed;{Convert.ToBase64String(key.Identifier)}";
         }
     }
 }

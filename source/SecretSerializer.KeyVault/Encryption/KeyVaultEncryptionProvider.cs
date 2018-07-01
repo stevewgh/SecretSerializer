@@ -1,8 +1,9 @@
-﻿using Microsoft.Azure.KeyVault;
+﻿using System;
+using Microsoft.Azure.KeyVault;
 using Microsoft.Azure.KeyVault.Models;
-using System;
+using SecretSerializer.Encryption;
 
-namespace SecretSerializer.Encryption
+namespace SecretSerializer.KeyVault.Encryption
 {
     public class KeyVaultEncryptionProvider : EncryptionProvider
     {
@@ -29,24 +30,30 @@ namespace SecretSerializer.Encryption
             this.keySecretName = keySecretName;
         }
 
-        protected override byte[] GetKeyForNewSecret(out string keyIdentifier)
+        protected override bool VerifyKeyIdentity(Key key, Secret secret)
+        {
+            // enhance this with checks on versions that we know about?
+            return true;
+        }
+
+        protected override Key GetKeyForNewSecret(out string keyIdentifier)
         {
             var bundle = keyVaultClient.GetSecretAsync(keyVaultUri, keySecretName).ConfigureAwait(false).GetAwaiter().GetResult();
             keyIdentifier = bundle.SecretIdentifier.Version;
             return GetKeyFromBundle(bundle);
         }
 
-        protected override byte[] GetKeyForExistingSecret(Secret secret)
+        protected override Key GetKeyForExistingSecret(Secret secret)
         {
             var bundle = keyVaultClient.GetSecretAsync(keyVaultUri, keySecretName, secret.KeyIdentifier).ConfigureAwait(false).GetAwaiter().GetResult();
             return GetKeyFromBundle(bundle);
         }
 
-        private static byte[] GetKeyFromBundle(SecretBundle bundle)
+        private static Key GetKeyFromBundle(SecretBundle bundle)
         {
             try
             {
-                return Convert.FromBase64String(bundle.Value);
+                return new Key(Convert.FromBase64String(bundle.Value));
             }
             catch
             {

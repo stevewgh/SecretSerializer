@@ -25,7 +25,7 @@ namespace SecretSerializer
                 return property;
             }
 
-            if (member is PropertyInfo propertyInfo && propertyInfo.PropertyType.CustomAttributes.Any(data => data.AttributeType == typeof(KeepSecretAttribute)))
+            if (member is PropertyInfo propertyInfo && propertyInfo.PropertyType.GetTypeInfo().CustomAttributes.Any(data => data.AttributeType == typeof(KeepSecretAttribute)))
             {
                 var property = base.CreateProperty(member, memberSerialization);
                 property.Converter = new SecretConverter(encryptionProvider);
