@@ -8,13 +8,13 @@ namespace SecretSerializer.Encryption
     {
         public Secret Encrypt(byte[] data)
         {
-            var key = GetKeyForNewSecret(out var keyIdentifier);
+            var key = GetKeyForNewSecret();
 
             using (var aes = CreateAesOrThrowIfNull())
             {
                 aes.Key = key.Value;
 
-                return EncryptStream(data, aes, keyIdentifier);
+                return EncryptStream(data, aes, key.Identifier);
             }
         }
 
@@ -40,9 +40,7 @@ namespace SecretSerializer.Encryption
             }
         }
 
-        protected abstract bool VerifyKeyIdentity(Key key, Secret secret);
-
-        protected abstract Key GetKeyForNewSecret(out string keyIdentifier);
+        protected abstract Key GetKeyForNewSecret();
 
         protected abstract Key GetKeyForExistingSecret(Secret secret);
 
@@ -88,11 +86,11 @@ namespace SecretSerializer.Encryption
             return aes;
         }
 
-        private void AssertKeyIsValid(Key key, Secret secret)
+        private static void AssertKeyIsValid(Key key, Secret secret)
         {
-            if (!VerifyKeyIdentity(key, secret))
+            if (key.Identifier != secret.KeyIdentifier)
             {
-                throw new KeyIdentifierMismatchException(secret.KeyIdentifier);
+                throw new KeyIdentifierMismatchException(key.Identifier, secret.KeyIdentifier);
             }
         }
     }

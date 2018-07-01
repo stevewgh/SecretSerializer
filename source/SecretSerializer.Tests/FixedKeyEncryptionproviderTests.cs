@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using FluentAssertions;
 using SecretSerializer.Encryption;
@@ -12,7 +14,7 @@ namespace SecretSerializer.Tests
 
         public FixedKeyEncryptionproviderTests()
         {
-            sut = new FixedKeyEncryptionProvider(new Key());
+            sut = new FixedKeyEncryptionProvider(GenerateKeyBytes());
         }
 
         [Fact]
@@ -39,7 +41,7 @@ namespace SecretSerializer.Tests
         public void Given_An_Incorrect_Key_Identifier_When_Decryption_Is_Attempted_Then_An_Exception_Is_Thrown()
         {
             var data = Encoding.UTF8.GetBytes(nameof(FixedKeyEncryptionproviderTests));
-            var key = new Key();
+            var key = GenerateKeyBytes();
             var encryptionProviderWithDifferentKey = new FixedKeyEncryptionProvider(key);
             
             var secret = sut.Encrypt(data);
@@ -51,28 +53,48 @@ namespace SecretSerializer.Tests
         public void Given_An_Incorrect_Key_When_Decryption_Is_Attempted_Then_Decryption_Does_Not_Return_The_Unencrypted_Data()
         {
             var data = Encoding.UTF8.GetBytes(nameof(FixedKeyEncryptionproviderTests));
-            var key = new Key();
-            var encryptionProviderWithDifferentKey = new FixedKeyEncryptionProvider(key);
             
             var secret = sut.Encrypt(data);
 
-            //  force the identifier to be the same to get past id checks
-            secret.KeyIdentifier = $"fixed;{Convert.ToBase64String(key.Identifier)}";
+            //  make a new key appear to be the same by using the same identifier
+            var incorrectKey = new Key(GenerateKeyBytes(), secret.KeyIdentifier);
+            var encryptionProviderWithDifferentKey = new FixedKeyEncryptionProvider(incorrectKey);
 
             encryptionProviderWithDifferentKey.Decrypt(secret).Should().NotBeEquivalentTo(data);
+        }
+
+        [Fact]
+        public void Given_A_Single_Key_When_Encrypting_Two_Secrets_Then_The_KeyIdentifier_Is_The_Same_For_Each_Secret()
+        {
+            var data = Encoding.UTF8.GetBytes(nameof(FixedKeyEncryptionproviderTests));
+            
+            var secret1 = sut.Encrypt(data);
+            var secret2 = sut.Encrypt(data.Reverse().ToArray());
+
+            secret1.KeyIdentifier.Should().Be(secret2.KeyIdentifier);
         }
 
         [Fact]
         public void Given_Two_Keys_When_Encrypted_Then_The_KeyIdentifier_Is_Unique_For_Each_Secret()
         {
             var data = Encoding.UTF8.GetBytes(nameof(FixedKeyEncryptionproviderTests));
-            var provider1 = new FixedKeyEncryptionProvider(new Key());
-            var provider2 = new FixedKeyEncryptionProvider(new Key());
+            var provider1 = new FixedKeyEncryptionProvider(GenerateKeyBytes());
+            var provider2 = new FixedKeyEncryptionProvider(GenerateKeyBytes());
             
             var secret1 = provider1.Encrypt(data);
             var secret2 = provider2.Encrypt(data);
 
             secret1.KeyIdentifier.Should().NotBe(secret2.KeyIdentifier);
+        }
+
+        private static byte[] GenerateKeyBytes()
+        {
+            var keyBytes = new byte[Key.KeySize];
+            using (var rnd = RandomNumberGenerator.Create())
+            {
+                rnd.GetBytes(keyBytes);
+            }
+            return keyBytes;
         }
     }
 }

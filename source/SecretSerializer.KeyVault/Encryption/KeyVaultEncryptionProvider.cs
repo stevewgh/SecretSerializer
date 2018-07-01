@@ -30,16 +30,9 @@ namespace SecretSerializer.KeyVault.Encryption
             this.keySecretName = keySecretName;
         }
 
-        protected override bool VerifyKeyIdentity(Key key, Secret secret)
-        {
-            // enhance this with checks on versions that we know about?
-            return true;
-        }
-
-        protected override Key GetKeyForNewSecret(out string keyIdentifier)
+        protected override Key GetKeyForNewSecret()
         {
             var bundle = keyVaultClient.GetSecretAsync(keyVaultUri, keySecretName).ConfigureAwait(false).GetAwaiter().GetResult();
-            keyIdentifier = bundle.SecretIdentifier.Version;
             return GetKeyFromBundle(bundle);
         }
 
@@ -53,7 +46,7 @@ namespace SecretSerializer.KeyVault.Encryption
         {
             try
             {
-                return new Key(Convert.FromBase64String(bundle.Value));
+                return new Key(Convert.FromBase64String(bundle.Value), bundle.SecretIdentifier.Version);
             }
             catch
             {

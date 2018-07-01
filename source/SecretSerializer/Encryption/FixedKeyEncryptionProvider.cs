@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Security.Cryptography;
 
 namespace SecretSerializer.Encryption
 {
@@ -6,9 +7,14 @@ namespace SecretSerializer.Encryption
     {
         private readonly Key fixedKey;
 
-        public FixedKeyEncryptionProvider(Key fixedKey)
+        public FixedKeyEncryptionProvider(byte[] keyBytes)
         {
-            this.fixedKey = fixedKey;
+            this.fixedKey = ConvertBytesToKey(keyBytes);
+        }
+
+        public FixedKeyEncryptionProvider(Key key)
+        {
+            this.fixedKey = key;
         }
 
         protected override Key GetKeyForExistingSecret(Secret secret)
@@ -16,20 +22,22 @@ namespace SecretSerializer.Encryption
             return fixedKey;
         }
 
-        protected override bool VerifyKeyIdentity(Key key, Secret secret)
+        protected override Key GetKeyForNewSecret()
         {
-            return GetKeyIdentifier(key) == secret.KeyIdentifier;
-        }
-
-        protected override Key GetKeyForNewSecret(out string keyIdentifier)
-        {
-            keyIdentifier = GetKeyIdentifier(fixedKey);
             return fixedKey;
         }
 
-        private static string GetKeyIdentifier(Key key)
+        private static Key ConvertBytesToKey(byte[] keyBytes)
         {
-            return $"fixed;{Convert.ToBase64String(key.Identifier)}";
+            return new Key(keyBytes, GetKeyIdentifier(keyBytes));
+        }
+
+        private static string GetKeyIdentifier(byte[] keyBytes)
+        {
+            using (var hmac = new HMACSHA256(keyBytes))
+            {
+                return $"fixed;{Convert.ToBase64String(hmac.ComputeHash(keyBytes))}";
+            }
         }
     }
 }

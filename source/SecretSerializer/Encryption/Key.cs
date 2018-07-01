@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace SecretSerializer.Encryption
 {
@@ -9,46 +6,18 @@ namespace SecretSerializer.Encryption
     {
         public const int KeySize = 32;
 
-        public Key()
-        {
-            this.Value = new byte[KeySize];
-            using (var rnd = RandomNumberGenerator.Create())
-            {
-                rnd.GetBytes(Value);
-            }
-            SetIdentifier();
-        }
-
-        public Key(byte[] keyBytes)
+        public Key(byte[] keyBytes, string identifier)
         {
             if (keyBytes.Length != KeySize)
             {
                 throw new ArgumentException($"Key must be {KeySize} keyBytes", nameof(keyBytes));
             }
 
-            this.Value = keyBytes;            
-            SetIdentifier();
-        }
-
-        private void SetIdentifier()
-        {
-            using (var sha = SHA256.Create())
-            {
-                // a fast repeatable process of uniquely identifying the key without compromising its value
-                const string salt = "a94NZ8Nom9";
-                const string pepper = "ws7vrPpExW";
-                
-                var pseudoKey =
-                    Encoding.UTF8.GetBytes(salt)
-                        .Union(Value.Take(8))
-                        .Union(Encoding.UTF8.GetBytes(pepper))
-                        .ToArray();
-
-                Identifier = sha.ComputeHash(pseudoKey);
-            }
+            Value = keyBytes;
+            Identifier = identifier;
         }
 
         public byte[] Value { get; }
-        public byte[] Identifier { get; private set; }
+        public string Identifier { get; }
     }
 }
