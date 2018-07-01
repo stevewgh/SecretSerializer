@@ -48,7 +48,7 @@ The Json will look something like this:
 ```json
 {
 "IContainASecret":{
-  "KeyIdentifier":"fixed",
+  "KeyIdentifier":"fixed;2fSE8uyF/lUIiqUGKRKaGHXoJzJI1lZ3rIF+BlIKH8o=",
   "Data":"x0F/1s2enXeBgKolEGnbTLG3nDZjZHbPO7N0g0WyA5iWW/hitohAbCs509jhrdqj",
   "Iv":"nyWfg1ez0qF6GayP3APnuA=="
 },
